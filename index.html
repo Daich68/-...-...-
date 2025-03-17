@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>сборник стихов «ИГРА В ГО»</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Noto+Sans+KR:wght@100;300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <header class="site-header">
+        <h1 class="glitch-text">Данила Кудимов</h1>
+        <p class="subtitle korean-text">...мои шестьдесят памятных партий...</p>
+        <h1 class="glitch-text">сборник стихов «ИГРА В ГО»</h1>
+    </header>
+    
+    <main id="poems-container">
+        <!-- Poems will be dynamically inserted here -->
+    </main>
+
+    <div class="loading-indicator">
+        <span class="korean-text">시를 불러오는 중...</span>
+    </div>
+
+    <button id="scroll-to-top" class="scroll-to-top" aria-label="Scroll to top">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 19V5M5 12l7-7 7 7"/>
+        </svg>
+    </button>
+
+    <div id="minimap" class="minimap" aria-label="Minimap navigation">
+        <!-- Миникарта будет генерироваться через JS -->
+    </div>
+    
+
+    <script src="poems.js"></script>
+    <script src="cursor.js"></script>
+</body>
+</html>
