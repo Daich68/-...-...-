@@ -113,6 +113,7 @@ body {
 }
 
 .poem {
+    font-size: 0.8em;
     transform: rotate(-90deg) !important;
     transform-origin: center !important;
     width: 80vh;
@@ -557,6 +558,7 @@ body {
     }
 
     .poem {
+        font-size: 2em;
         transform: none !important;
         writing-mode: horizontal-tb;
         width: 90%;
