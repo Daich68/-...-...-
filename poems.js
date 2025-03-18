@@ -342,7 +342,7 @@ class PoemRenderer {
         article.className = `poem-container ${poem.layout}-layout`;
         
         // Разбиваем контент на страницы
-        const linesPerPage = 8; // Уменьшаем количество строк для лучшего центрирования
+        const linesPerPage = 10; // Уменьшаем количество строк для лучшего центрирования
         const pages = [];
         for (let i = 0; i < poem.content.length; i += linesPerPage) {
             pages.push(poem.content.slice(i, i + linesPerPage));
