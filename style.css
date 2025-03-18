@@ -137,7 +137,6 @@ body {
 }
 
 .poem:hover {
-    transform: rotate(-89deg) translateY(-10px) !important;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.3);
 }
@@ -327,10 +326,10 @@ body {
 /* Minimap Styles */
 .minimap {
     position: fixed;
-    bottom: 6em;
+    bottom: 2em;
     right: 2em;
-    width: 120px;
-    height: 120px;
+    width: 6em;
+    height: 6em;
     background: rgba(0, 0, 0, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(5px);
@@ -553,12 +552,33 @@ body {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+
+    .minimap {
+        position: fixed;
+        bottom: 5em !important;
+        left: 5em !important;
+        width: 30em !important;
+        height: 30em !important;
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(5px);
+        display: grid;
+        gap: 1px;
+        mix-blend-mode: difference;
+        z-index: 1000;
+        border-radius: 4px;
+        padding: 2px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
     .glitch-text {
         font-size: 9em;
     }
 
     .poem {
-        font-size: 2em;
+        left: 1em !important;
+        font-size: 2.5em;
         transform: none !important;
         writing-mode: horizontal-tb;
         width: 90%;
@@ -584,7 +604,11 @@ body {
         min-height: 60vh;
         padding: 1em;
     }
-
+    
+    .movement-hint {
+        display: none;
+    }
+    
     .poem-info {
         position: sticky;
         bottom: 0;
@@ -622,16 +646,9 @@ body {
         line-height: 1.6;
     }
 
-    .minimap {
-        width: 60px;
-        height: 60px;
-        bottom: 4em;
-        right: 1em;
-    }
-
     .pagination-controls {
-        position: fixed;
-        bottom: 1em;
+        position: absolute!important;
+        bottom: 1em!important;
         right: 1em;
         padding: 0.3em;
         background: rgba(0, 0, 0, 0.8);
