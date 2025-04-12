@@ -551,8 +551,11 @@ body {
     animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
+
+    .custom-cursor {
+        display: none; !important;
+    }
 
     .subtitle, .korean-text {
         font-size: 5em;
@@ -667,7 +670,6 @@ body {
     }
 }
 
-/* Korean Style Elements */
 .korean-text {
     font-family: 'Noto Sans KR', sans-serif;
     word-break: keep-all;
@@ -727,7 +729,7 @@ body {
     text-align: center;
 }
 
-/* Custom Cursor */
+
 .custom-cursor {
     width: 12px;
     height: 12px;
@@ -812,7 +814,6 @@ body {
     box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -833,13 +834,11 @@ body {
     background: rgba(255, 255, 255, 0.3);
 }
 
-/* Firefox Scrollbar */
 * {
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.15) rgba(0, 0, 0, 0.2);
 }
 
-/* Hover states for interactive elements */
 a, button, .poem, .minimap-cell, .scroll-to-top {
     cursor: none;
 }

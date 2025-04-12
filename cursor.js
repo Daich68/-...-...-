@@ -18,10 +18,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Магнитный эффект
-    function getMagneticOffset(element) {
-        const rect = element.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
+function getMagneticOffset(element) {
+    const rect = element.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
         
         const distance = Math.sqrt(
             Math.pow(mouseX - centerX, 2) + 
