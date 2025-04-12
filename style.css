@@ -553,6 +553,12 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
 
+    .subtitle, .korean-text {
+        font-size: 5em;
+        text-align: justify;
+        max-width: 80%;
+    }
+
     .minimap {
         position: fixed;
         bottom: 5em !important;
@@ -573,11 +579,12 @@ body {
     }
 
     .glitch-text {
-        font-size: 9em;
+        font-size: 7em;
+        text-align: justify;
+        max-width: 80%;
     }
 
     .poem {
-        left: 1em !important;
         font-size: 2.5em;
         transform: none !important;
         writing-mode: horizontal-tb;
