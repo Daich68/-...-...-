@@ -68,9 +68,9 @@ class PoemRenderer {
     }
 
     scrollToFirstSection() {
-        const firstSection = document.querySelector('.poem-container');
-        if (firstSection) {
-            firstSection.scrollIntoView({ behavior: 'smooth' });
+        const poemsSection = document.getElementById('poems-section');
+        if (poemsSection) {
+            poemsSection.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
@@ -166,7 +166,6 @@ class PoemRenderer {
     setupMovementHint() {
         const hint = document.createElement('div');
         hint.className = 'movement-hint';
-        hint.innerHTML = 'Use arrows or WASD to move freely, Enter to snap to nearest node 〔✛〕';
         document.body.appendChild(hint);
     }
 
@@ -269,7 +268,7 @@ class PoemRenderer {
                     currentSection.classList.remove('moving');
                 }
                 
-                // Добавляем позицию в список посещенных
+                
                 this.addVisitedPosition(toPos);
                 
                 const nearestNode = this.findNearestNode(toPos.x, toPos.y);
@@ -660,32 +659,17 @@ class PoemRenderer {
         const progress = Math.min(this.lastReadPoemIndex / this.poems.length, 1);
         return progress;
     }
-
     setupScrollListeners() {
-        // Отслеживаем прокрутку для определения, когда пользователь читает стихотворение
         window.addEventListener('scroll', () => {
-            const header = document.querySelector('.site-header');
-            const poemContainers = document.querySelectorAll('.poem-container');
+            // Определяем, находимся ли мы в заголовке или в разделе стихотворений
+            const headerSection = document.getElementById('header-section');
+            const headerRect = headerSection.getBoundingClientRect();
+            const isAtHeader = headerRect.top <= 0 && headerRect.bottom > 0;
             
-            if (!header || poemContainers.length === 0) return;
-            
-            const headerRect = header.getBoundingClientRect();
-            const isAtHeader = headerRect.top <= 0 && headerRect.bottom >= 0;
-            
-            // Проверяем, находится ли пользователь на стихотворении
-            let isAtPoem = false;
-            let currentPoemIndex = -1;
-            
-            poemContainers.forEach((container, index) => {
-                const rect = container.getBoundingClientRect();
-                if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
-                    isAtPoem = true;
-                    currentPoemIndex = index;
-                    
-                    // Запоминаем текущее стихотворение для отслеживания прогресса
-                    this.lastReadPoemIndex = Math.max(currentPoemIndex, this.lastReadPoemIndex || 0);
-                }
-            });
+            // Определяем, находимся ли мы на разделе со стихами
+            const poemsSection = document.getElementById('poems-section');
+            const poemsSectionRect = poemsSection.getBoundingClientRect();
+            const isAtPoemsSection = poemsSectionRect.top <= window.innerHeight / 2 && poemsSectionRect.bottom >= window.innerHeight / 2;
             
             // Если пользователь вернулся к заголовку после чтения стихотворения
             if (isAtHeader && this.isReadingPoem) {
@@ -694,7 +678,7 @@ class PoemRenderer {
             }
             
             // Если пользователь начал читать стихотворение
-            if (isAtPoem && !this.isReadingPoem) {
+            if (isAtPoemsSection && !this.isReadingPoem) {
                 this.isReadingPoem = true;
                 this.hideGoBoard();
             }
@@ -719,30 +703,27 @@ class PoemRenderer {
     }
 
     updateCurrentLevel() {
-        const sections = [
-            document.querySelector('.site-header'),
-            ...Array.from(document.querySelectorAll('.poem-container')),
-            document.querySelector('footer')
-        ];
-
-        const currentSection = sections.find(section => {
-            const rect = section.getBoundingClientRect();
-            return rect.top <= 50 && rect.bottom > 50;
-        });
-
-        if (currentSection) {
-            const sectionIndex = sections.indexOf(currentSection);
-            const newLevel = Math.min(Math.max(sectionIndex - 1, 0), this.currentPage - 1);
-            if (newLevel !== this.currentLevel) {
-                this.currentLevel = newLevel;
-                const levelNodes = this.nodes.filter(node => node.level === this.currentLevel);
-                if (levelNodes.length > 0) {
-                    this.currentNodeId = levelNodes[0].id;
-                    this.currentPos = { x: levelNodes[0].x, y: levelNodes[0].y };
-                }
-                this.setupMinimap();
-                this.updateCurrentSection();
+        const headerSection = document.getElementById('header-section');
+        const poemsSection = document.getElementById('poems-section');
+        
+        const headerRect = headerSection.getBoundingClientRect();
+        const poemsSectionRect = poemsSection.getBoundingClientRect();
+        
+        let newLevel = 0;
+        
+        if (poemsSectionRect.top <= 50 && poemsSectionRect.bottom > 50) {
+            newLevel = 1;
+        }
+        
+        if (newLevel !== this.currentLevel) {
+            this.currentLevel = newLevel;
+            const levelNodes = this.nodes.filter(node => node.level === this.currentLevel);
+            if (levelNodes.length > 0) {
+                this.currentNodeId = levelNodes[0].id;
+                this.currentPos = { x: levelNodes[0].x, y: levelNodes[0].y };
             }
+            this.setupMinimap();
+            this.updateCurrentSection();
         }
     }
 

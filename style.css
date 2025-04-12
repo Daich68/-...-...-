@@ -1,10 +1,11 @@
-/* Base Styles */
+
 html {
     scroll-behavior: smooth;
     font-size: 1vw;
     height: 100%;
     margin: 0;
     padding: 0;
+    user-select: none;
     font-family: 'Space Mono', monospace;
     color: #ffffff;
     background-color: #000000;
@@ -12,7 +13,7 @@ html {
     line-height: 1.6;
     letter-spacing: -0.02em;
     -webkit-overflow-scrolling: touch;
-    cursor: none; /* Скрываем стандартный курсор */
+    cursor: none; 
 }
 
 body {
@@ -21,7 +22,6 @@ body {
     padding: 0;
     font-family: 'Space Mono', monospace;
     color: #ffffff;
-    background-color: #000000;
     overflow-x: hidden;
     line-height: 1.6;
     letter-spacing: -0.02em;
@@ -31,7 +31,7 @@ body {
     overscroll-behavior-y: contain;
 }
 
-/* Canvas Container */
+
 #canvas-container {
     position: fixed;
     top: 0;
@@ -49,7 +49,7 @@ body {
     height: 100% !important;
 }
 
-/* Typography */
+
 .glitch-text {
     font-size: 5em;
     font-weight: 700;
@@ -68,15 +68,32 @@ body {
     margin-top: 1em;
 }
 
-.site-header, .poem-container, footer {
+.scroll-section {
     width: 100%;
     min-height: 100vh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    position: relative;
+    overflow: hidden;
+}
+
+#header-section {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#poems-section {
+    min-height: 100vh;
+}
+
+.site-header {
+    width: 100%;
     display: flex;
     align-items: center;
     flex-direction: column;
     justify-content: center;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
     position: relative;
     overflow: hidden;
 }
@@ -87,16 +104,15 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 2em 0;
 }
 
 .poem-container {
-    min-height: 100vh;
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 2em;
-    scroll-snap-align: start;
     position: relative;
     will-change: transform, opacity;
     transform: translateZ(0);
@@ -104,6 +120,7 @@ body {
     perspective: 1000px;
     transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     transform-origin: center;
+    margin-bottom: 2em;
 }
 
 .poem-container.moving {
@@ -249,7 +266,7 @@ body {
     font-family: monospace;
 }
 
-/* Header Styles */
+
 .site-header {
     background: linear-gradient(to bottom, rgba(0,0,0,0.3), transparent);
     backdrop-filter: blur(3px);
@@ -257,11 +274,6 @@ body {
     padding: 0 2em;
 }
 
-
-/* Poem Layouts */
-.diagonal-layout {
-    transform: rotate(-5deg) translateX(5%);
-}
 
 .vertical-layout {
     writing-mode: vertical-rl;
@@ -275,7 +287,6 @@ body {
     align-items: center;
 }
 
-/* Loading Indicator */
 .loading-indicator {
     text-align: center;
     padding: 2em;
@@ -284,7 +295,6 @@ body {
     mix-blend-mode: difference;
 }
 
-/* Scroll to Top Button */
 .scroll-to-top {
     position: fixed;
     bottom: 2em;
@@ -322,7 +332,6 @@ body {
     height: 1.5em;
 }
 
-/* Minimap Styles */
 .minimap {
     position: fixed;
     bottom: 2em;
@@ -354,10 +363,10 @@ body {
     border-radius: 2px;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    display: flex; /* Делаем ячейку flex-контейнером */
+    display: flex; 
     justify-content: center;
     align-items: center;
-    box-sizing: border-box; /* Учитываем возможные border/padding */
+    box-sizing: border-box; 
 }
 
 .minimap-cell:not(.empty)::before {
@@ -366,8 +375,8 @@ body {
     font-size: 0.8em;
     opacity: 0.7;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
-    line-height: 1; /* Убираем влияние line-height */
-    text-align: center; /* Центрируем текст */
+    line-height: 1;
+    text-align: center;
 }
 .minimap-cell:hover {
     background: rgba(255, 255, 255, 0.2);
@@ -385,7 +394,6 @@ body {
     z-index: 2;
 }
 
-/* Стили для стен и путей */
 .minimap-cell::before,
 .minimap-cell::after {
     content: "";
@@ -393,7 +401,6 @@ body {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Стены */
 .minimap-cell.wall-up::before {
     top: 0;
     left: 20%;
@@ -430,7 +437,6 @@ body {
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
 }
 
-/* Пути */
 .minimap-cell.path-up::after {
     top: 0;
     left: 45%;
@@ -465,30 +471,6 @@ body {
     width: 4px;
     background: rgba(255, 255, 255, 0.5);
     box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
-}
-
-/* Подсказка для перемещения */
-.movement-hint {
-    position: fixed;
-    max-width: 20vw;
-    bottom: 2em;
-    left: 2em;
-    font-family: 'Space Mono', monospace;
-    font-size: 0.9em;
-    color: rgba(255, 255, 255, 0.7);
-    mix-blend-mode: difference;
-    opacity: 0.5;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.movement-hint:hover {
-    opacity: 1;
-}
-
-/* Добавляем стили для подсказок */
-.minimap-cell:not(.empty) {
-    position: relative;
 }
 
 .minimap-cell:not(.empty)::after {
@@ -534,7 +516,7 @@ body {
     }
 }
 
-/* Animations */
+
 @keyframes fadeIn {
     from {
         opacity: 0;
