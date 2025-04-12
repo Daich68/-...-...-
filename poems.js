@@ -14,8 +14,8 @@ class PoemRenderer {
         this.currentLevel = 0;
         this.minimap = document.getElementById('minimap');
 
-        // Флаг для управления автопрокруткой
-        this.shouldAutoScroll = true;
+        // Отключаем автопрокрутку
+        this.shouldAutoScroll = false;
 
         // Размер карты
         this.mapWidth = 19;
@@ -29,17 +29,25 @@ class PoemRenderer {
         
         // Текущая позиция
         this.currentPos = { x: 0, y: 0 };
+        this.visitedPositions = []; // Сохраняем посещенные позиции на миникарте
         
         // Оптимизация производительности
         this.animationFrame = null;
         this.lastUpdateTime = 0;
         this.updateInterval = 1000 / 60; // 60 FPS
 
+        // Инициализация доски Го для фона
+        this.goBoard = null;
+        this.isReadingPoem = false;
+        this.lastReadPoemIndex = 0; // Для отслеживания прогресса чтения
+        this.initGoBoard();
+
         this.setupScrollToTop();
         this.setupScrollHandling();
         this.setupMovement();
         this.setupMinimap();
         this.setupMovementHint();
+        this.setupScrollListeners();
     }
 
     async init() {
@@ -51,12 +59,8 @@ class PoemRenderer {
             this.renderPoems();
             this.setupInfiniteScroll();
             this.hideLoading();
-
-            setTimeout(() => {
-                if (this.shouldAutoScroll) {
-                    this.scrollToFirstSection();
-                }
-            }, 2000);
+            // Показываем доску Го с эстетичным узором
+            this.showGoBoard();
         } catch (error) {
             console.error('Error loading poems:', error);
             this.showError();
@@ -264,6 +268,10 @@ class PoemRenderer {
                 if (currentSection) {
                     currentSection.classList.remove('moving');
                 }
+                
+                // Добавляем позицию в список посещенных
+                this.addVisitedPosition(toPos);
+                
                 const nearestNode = this.findNearestNode(toPos.x, toPos.y);
                 if (nearestNode) {
                     this.currentNodeId = nearestNode.id;
@@ -273,6 +281,26 @@ class PoemRenderer {
         };
 
         requestAnimationFrame(animate);
+    }
+    
+    // Добавляем позицию в список посещенных
+    addVisitedPosition(pos) {
+        // Проверяем, что позиция еще не была посещена
+        const isAlreadyVisited = this.visitedPositions.some(visitedPos => {
+            return Math.floor(visitedPos.x) === Math.floor(pos.x) && 
+                   Math.floor(visitedPos.y) === Math.floor(pos.y);
+        });
+        
+        if (!isAlreadyVisited) {
+            this.visitedPositions.push({...pos});
+            
+            // Если мы не читаем стихотворение, обновляем доску
+            if (!this.isReadingPoem && this.goBoard) {
+                // Добавляем новый камень на доску
+                const color = this.visitedPositions.length % 2 === 0 ? 'black' : 'white';
+                this.goBoard.addStone(Math.floor(pos.x), Math.floor(pos.y), color);
+            }
+        }
     }
 
     updateMinimapPosition(x, y) {
@@ -576,6 +604,103 @@ class PoemRenderer {
         });
     }
 
+    initGoBoard() {
+        // Инициализация доски Го
+        if (window.GoBoard) {
+            this.goBoard = new GoBoard('canvas-container', this.mapWidth, this.mapHeight);
+            // Изначально скрываем доску
+            if (this.goBoard.canvas) {
+                this.goBoard.canvas.style.opacity = 0;
+            }
+        }
+    }
+
+    showGoBoard() {
+        if (this.goBoard) {
+            // Создаем узор на доске на основе посещенных позиций на миникарте
+            this.goBoard.clearStones();
+            
+            // Добавляем камни на основе посещенных позиций
+            if (this.visitedPositions.length > 0) {
+                // Добавляем камни для каждой посещенной позиции
+                this.visitedPositions.forEach((pos, index) => {
+                    // Чередуем черные и белые камни
+                    const color = index % 2 === 0 ? 'black' : 'white';
+                    // Преобразуем координаты в целые числа для доски
+                    const x = Math.floor(pos.x);
+                    const y = Math.floor(pos.y);
+                    this.goBoard.addStone(x, y, color);
+                });
+            } else {
+                // Если нет посещенных позиций, используем прогресс чтения
+                const readingProgress = this.calculateReadingProgress();
+                this.goBoard.createPositionBasedPattern(readingProgress);
+            }
+            
+            // Плавно показываем доску
+            this.goBoard.fadeIn(1500);
+        }
+    }
+
+    hideGoBoard() {
+        if (this.goBoard) {
+            this.goBoard.fadeOut(800);
+        }
+    }
+    
+    // Вычисляем прогресс чтения на основе прочитанных стихотворений
+    calculateReadingProgress() {
+        // Если нет стихотворений, возвращаем 0
+        if (!this.poems || this.poems.length === 0) return 0;
+        
+        // Если не было прочитано ни одного стихотворения, возвращаем 0
+        if (!this.lastReadPoemIndex) return 0;
+        
+        // Вычисляем прогресс как отношение прочитанных стихотворений к общему количеству
+        const progress = Math.min(this.lastReadPoemIndex / this.poems.length, 1);
+        return progress;
+    }
+
+    setupScrollListeners() {
+        // Отслеживаем прокрутку для определения, когда пользователь читает стихотворение
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('.site-header');
+            const poemContainers = document.querySelectorAll('.poem-container');
+            
+            if (!header || poemContainers.length === 0) return;
+            
+            const headerRect = header.getBoundingClientRect();
+            const isAtHeader = headerRect.top <= 0 && headerRect.bottom >= 0;
+            
+            // Проверяем, находится ли пользователь на стихотворении
+            let isAtPoem = false;
+            let currentPoemIndex = -1;
+            
+            poemContainers.forEach((container, index) => {
+                const rect = container.getBoundingClientRect();
+                if (rect.top <= window.innerHeight / 2 && rect.bottom >= window.innerHeight / 2) {
+                    isAtPoem = true;
+                    currentPoemIndex = index;
+                    
+                    // Запоминаем текущее стихотворение для отслеживания прогресса
+                    this.lastReadPoemIndex = Math.max(currentPoemIndex, this.lastReadPoemIndex || 0);
+                }
+            });
+            
+            // Если пользователь вернулся к заголовку после чтения стихотворения
+            if (isAtHeader && this.isReadingPoem) {
+                this.isReadingPoem = false;
+                this.showGoBoard();
+            }
+            
+            // Если пользователь начал читать стихотворение
+            if (isAtPoem && !this.isReadingPoem) {
+                this.isReadingPoem = true;
+                this.hideGoBoard();
+            }
+        });
+    }
+
     async loadMorePoems() {
         if (this.currentPage * this.poemsPerPage >= this.poems.length) return;
 
@@ -656,68 +781,21 @@ class PoemRenderer {
     }
 
     setupScrollHandling() {
-        let ticking = false;
-
-        window.addEventListener('wheel', (e) => {
-            if (this.isAnimating) {
-                e.preventDefault();
-                return;
-            }
-
-            if (!ticking) {
-                window.requestAnimationFrame(() => {
-                    this.handleScroll(e);
-                    ticking = false;
-                });
-                ticking = true;
-            }
-
-            e.preventDefault();
-        }, { passive: false });
+        // Удаляем обработку прокрутки колесиком мыши для свободной прокрутки
+        // Пользователь может свободно прокручивать страницу
     }
 
     handleScroll(e) {
-        const now = Date.now();
-        if (now - this.lastScrollTime < this.scrollCooldown) return;
-
-        const sections = [
-            document.querySelector('.site-header'),
-            ...Array.from(document.querySelectorAll('.poem-container')),
-            document.querySelector('footer')
-        ];
-
-        const currentSection = sections.find(section => {
-            const rect = section.getBoundingClientRect();
-            return rect.top <= 50 && rect.bottom > 50;
-        });
-
-        if (!currentSection) return;
-
-        const currentIndex = sections.indexOf(currentSection);
-        const direction = e.deltaY > 0 ? 1 : -1;
-        const targetIndex = currentIndex + direction;
-
-        if (targetIndex >= 0 && targetIndex < sections.length) {
-            sections[targetIndex].scrollIntoView({ behavior: 'smooth' });
-            this.lastScrollTime = now;
-        }
+        // Удаляем обработчик прокрутки для свободной навигации
+        // Теперь пользователь может прокручивать страницу без ограничений
     }
 
     setupPoemInteraction() {
         const poemContent = document.querySelector('.poem-content');
         if (!poemContent) return;
 
-        // Предотвращаем конфликты прокрутки
-        poemContent.addEventListener('wheel', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-        }, { passive: false });
-
-        // Добавляем поддержку тач-событий
-        poemContent.addEventListener('touchmove', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-        }, { passive: false });
+        // Удаляем блокировку прокрутки внутри стихотворений
+        // для свободной навигации
     }
 }
 
