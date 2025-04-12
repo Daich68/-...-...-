@@ -395,10 +395,10 @@ class PoemRenderer {
                     ${poem.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                 </div>
                 ${pages.length > 1 ? `
-                    <div class="pagination-controls">
-                        <button class="pagination-button prev-page" ${pages.length <= 1 ? 'disabled' : ''}>←</button>
-                        <span class="page-info">${1} / ${pages.length}</span>
-                        <button class="pagination-button next-page" ${pages.length <= 1 ? 'disabled' : ''}>→</button>
+                    <div class="page-indicators">
+                        ${Array.from({length: pages.length}, (_, i) => `
+                            <div class="page-dot ${i === 0 ? 'active' : ''}" data-page="${i+1}/${pages.length}"></div>
+                        `).join('')}
                     </div>
                 ` : ''}
             </div>
@@ -407,17 +407,15 @@ class PoemRenderer {
         const poemElement = article.querySelector('.poem');
         poemElement.addEventListener('click', () => this.togglePoemLanguage(poem, poemElement));
 
-        // Добавляем обработчики для пагинации
+        // Добавляем обработчики для новой системы навигации
         if (pages.length > 1) {
-            const prevButton = article.querySelector('.prev-page');
-            const nextButton = article.querySelector('.next-page');
-            const pageInfo = article.querySelector('.page-info');
+            const pageDots = article.querySelectorAll('.page-dot');
             let currentPage = 0;
 
             const updatePage = (page) => {
                 const pages = article.querySelectorAll('.poem-page');
                 
-                // Скрываем все страницы
+                // Скрываем все страницы с плавной анимацией
                 pages.forEach(p => {
                     p.style.display = 'none';
                     p.classList.remove('active');
@@ -428,38 +426,33 @@ class PoemRenderer {
                 nextPageElement.style.display = 'flex';
                 nextPageElement.classList.add('active');
                 
-                // Обновляем информацию о странице и состояние кнопок
-                pageInfo.textContent = `${page + 1} / ${pages.length}`;
-                prevButton.disabled = page === 0;
-                nextButton.disabled = page === pages.length - 1;
+                // Обновляем индикаторы страниц
+                pageDots.forEach((dot, index) => {
+                    if (index === page) {
+                        dot.classList.add('active');
+                    } else {
+                        dot.classList.remove('active');
+                    }
+                });
                 
                 // Обновляем текущую страницу
                 currentPage = page;
             };
 
-            // Обработчики для кнопок
-            prevButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (currentPage > 0) {
-                    currentPage--;
-                    updatePage(currentPage);
-                }
-            });
-
-            nextButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (currentPage < pages.length - 1) {
-                    currentPage++;
-                    updatePage(currentPage);
-                }
+            // Обработчики для точек навигации
+            pageDots.forEach((dot, index) => {
+                dot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    updatePage(index);
+                });
             });
 
             // Добавляем поддержку клавиатуры
             const handleKeyPress = (e) => {
-                if (e.key === 'ArrowLeft' && !prevButton.disabled) {
+                if (e.key === 'ArrowLeft' && currentPage > 0) {
                     currentPage--;
                     updatePage(currentPage);
-                } else if (e.key === 'ArrowRight' && !nextButton.disabled) {
+                } else if (e.key === 'ArrowRight' && currentPage < pages.length - 1) {
                     currentPage++;
                     updatePage(currentPage);
                 }
@@ -474,23 +467,30 @@ class PoemRenderer {
                 document.removeEventListener('keydown', handleKeyPress);
             });
 
-            // Добавляем поддержку свайпов для мобильных устройств
+            // Улучшенная поддержка свайпов для мобильных устройств
             let touchStartX = 0;
             let touchEndX = 0;
+            let touchStartY = 0;
+            let touchEndY = 0;
 
             poemElement.addEventListener('touchstart', (e) => {
                 touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
             });
 
             poemElement.addEventListener('touchend', (e) => {
                 touchEndX = e.changedTouches[0].clientX;
-                const diff = touchStartX - touchEndX;
-
-                if (Math.abs(diff) > 50) { // Минимальная длина свайпа
-                    if (diff > 0 && !nextButton.disabled) {
+                touchEndY = e.changedTouches[0].clientY;
+                const diffX = touchStartX - touchEndX;
+                const diffY = touchStartY - touchEndY;
+                
+                // Проверяем, что свайп был преимущественно горизонтальным
+                if (Math.abs(diffX) > Math.abs(diffY) * 2) {
+                    // Определяем направление свайпа (право/лево) с плавной анимацией
+                    if (diffX > 50 && currentPage < pages.length - 1) { // Свайп влево
                         currentPage++;
                         updatePage(currentPage);
-                    } else if (diff < 0 && !prevButton.disabled) {
+                    } else if (diffX < -50 && currentPage > 0) { // Свайп вправо
                         currentPage--;
                         updatePage(currentPage);
                     }
