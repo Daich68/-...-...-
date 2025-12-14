@@ -31,6 +31,15 @@ class PoemRenderer {
         this.currentPos = { x: 0, y: 0 };
         this.visitedPositions = []; // Сохраняем посещенные позиции на миникарте
         
+        // Порядок открытия стихов для чередования камней
+        this.openedPoemsOrder = []; // Массив ID стихов в порядке открытия
+        
+        // Прочитанные стихи (недоступны в этой сессии)
+        this.readPoems = new Set(); // Set ID прочитанных стихов
+        
+        // Счётчик ходов
+        this.moveCounter = document.getElementById('move-counter');
+        
         // Оптимизация производительности
         this.animationFrame = null;
         this.lastUpdateTime = 0;
@@ -153,6 +162,19 @@ class PoemRenderer {
                     const poem = this.poems[node.poemIndex];
                     if (poem) {
                         cell.title = poem.title;
+                        
+                        // Проверяем, прочитан ли стих
+                        if (this.isPoemRead(poem.id)) {
+                            cell.classList.add('read');
+                            cell.title = `${poem.title} (прочитано)`;
+                        }
+                        
+                        // Добавляем класс камня если стих был открыт
+                        const orderIndex = this.openedPoemsOrder.indexOf(poem.id);
+                        if (orderIndex !== -1) {
+                            const stoneClass = orderIndex % 2 === 0 ? 'stone-black' : 'stone-white';
+                            cell.classList.add(stoneClass);
+                        }
                     }
                 }
                 
@@ -243,6 +265,15 @@ class PoemRenderer {
 
         this.isAnimating = true;
         const startTime = performance.now();
+
+        // Помечаем текущий стих как прочитанный перед переходом
+        const currentNode = this.nodes.find(node => node.id === this.currentNodeId);
+        if (currentNode) {
+            const poem = this.poems[currentNode.poemIndex];
+            if (poem && this.openedPoemsOrder.includes(poem.id)) {
+                this.markPoemAsRead(poem.id);
+            }
+        }
 
         const currentSection = document.querySelector('.poem-container');
         if (currentSection) {
@@ -349,6 +380,25 @@ class PoemRenderer {
             const poemIndex = currentNode.poemIndex;
             if (poemIndex !== null && poemIndex < this.poems.length) {
                 const poem = this.poems[poemIndex];
+                
+                // Проверяем, прочитан ли стих
+                if (this.isPoemRead(poem.id)) {
+                    // Ищем ближайший непрочитанный стих
+                    const nextUnreadNode = this.findNearestUnreadNode(this.currentPos.x, this.currentPos.y);
+                    
+                    if (nextUnreadNode) {
+                        // Автоматически перемещаемся к непрочитанному стиху
+                        this.currentNodeId = nextUnreadNode.id;
+                        this.currentPos = { x: nextUnreadNode.x, y: nextUnreadNode.y };
+                        this.setupMinimap();
+                        this.updateCurrentSection();
+                    } else {
+                        // Все стихи прочитаны — показываем финальное сообщение
+                        this.showFinalMessage(currentSection);
+                    }
+                    return;
+                }
+                
                 const newPoemElement = this.createPoemElement(poem);
 
                 currentSection.innerHTML = '';
@@ -363,27 +413,152 @@ class PoemRenderer {
             }
         }
     }
+    
+    // Показать финальное сообщение благодарности
+    showFinalMessage(container) {
+        const totalPoems = this.poems.length;
+        const blackStones = Math.ceil(totalPoems / 2);
+        const whiteStones = Math.floor(totalPoems / 2);
+        
+        container.innerHTML = `
+            <div class="final-message">
+                <div class="final-icon">碁</div>
+                <h2>Партия завершена</h2>
+                <p class="final-stats">
+                    <span class="black-stat">● ${blackStones}</span>
+                    <span class="separator">:</span>
+                    <span class="white-stat">○ ${whiteStones}</span>
+                </p>
+                <p class="final-text">Благодарю за прочтение всех стихов.</p>
+                <p class="final-author">— Данила Кудимов</p>
+                <p class="final-hint">«...мои шестьдесят памятных партий...»</p>
+            </div>
+        `;
+    }
+
+    // Получить информацию о камне для стиха (цвет и номер хода)
+    getStoneInfo(poemId) {
+        // Проверяем, был ли стих уже открыт
+        let orderIndex = this.openedPoemsOrder.indexOf(poemId);
+        const isNewStone = orderIndex === -1;
+        
+        // Если стих ещё не открывался, добавляем его в порядок
+        if (isNewStone) {
+            this.openedPoemsOrder.push(poemId);
+            orderIndex = this.openedPoemsOrder.length - 1;
+            // Обновляем счётчик ходов
+            this.updateMoveCounter();
+            
+            // При открытии второго стиха скрываем верхнюю секцию
+            if (this.openedPoemsOrder.length === 2) {
+                this.hideHeaderSection();
+            }
+        }
+        
+        // Номер хода (начинается с 1)
+        const moveNumber = orderIndex + 1;
+        
+        // Нечётный порядок (0, 2, 4...) = чёрный камень, чётный (1, 3, 5...) = белый
+        const stoneClass = orderIndex % 2 === 0 ? 'stone-black' : 'stone-white';
+        
+        return { stoneClass, moveNumber, isNewStone };
+    }
+    
+    // Скрыть верхнюю секцию навсегда
+    hideHeaderSection() {
+        if (this.headerHidden) return;
+        
+        const headerSection = document.getElementById('header-section');
+        const poemsSection = document.getElementById('poems-section');
+        
+        this.headerHidden = true;
+        this.isReadingPoem = true;
+        this.hideGoBoard();
+        
+        // Скрываем верхнюю секцию с анимацией
+        headerSection.classList.add('hidden');
+        
+        // Делаем секцию стихов на весь экран
+        poemsSection.classList.add('fullscreen');
+        
+        // После анимации полностью убираем заголовок из потока
+        setTimeout(() => {
+            headerSection.style.display = 'none';
+        }, 500);
+    }
+    
+    // Обновить счётчик ходов
+    updateMoveCounter() {
+        if (!this.moveCounter) return;
+        
+        const totalMoves = this.openedPoemsOrder.length;
+        const blackCount = Math.ceil(totalMoves / 2);
+        const whiteCount = Math.floor(totalMoves / 2);
+        
+        this.moveCounter.querySelector('.black-count').textContent = blackCount;
+        this.moveCounter.querySelector('.white-count').textContent = whiteCount;
+        
+        // Показываем счётчик если есть хотя бы один ход
+        if (totalMoves > 0) {
+            this.moveCounter.classList.add('visible');
+        }
+    }
+    
+    // Пометить стих как прочитанный
+    markPoemAsRead(poemId) {
+        if (!this.readPoems.has(poemId)) {
+            this.readPoems.add(poemId);
+            // Обновляем миникарту чтобы показать прочитанный стих
+            this.setupMinimap();
+        }
+    }
+    
+    // Проверить, прочитан ли стих
+    isPoemRead(poemId) {
+        return this.readPoems.has(poemId);
+    }
+    
+    // Найти ближайший непрочитанный стих от позиции
+    findNearestUnreadNode(x, y) {
+        let nearestNode = null;
+        let minDistance = Infinity;
+        
+        for (const node of this.nodes) {
+            const poem = this.poems[node.poemIndex];
+            if (poem && !this.isPoemRead(poem.id)) {
+                const distance = Math.sqrt(
+                    Math.pow(node.x - x, 2) + 
+                    Math.pow(node.y - y, 2)
+                );
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestNode = node;
+                }
+            }
+        }
+        
+        return nearestNode; // null если все стихи прочитаны
+    }
 
     createPoemElement(poem) {
         const article = document.createElement('article');
         article.className = `poem-container ${poem.layout}-layout`;
         
-        // Разбиваем контент на страницы
-        const linesPerPage = 10; // Уменьшаем количество строк для лучшего центрирования
-        const pages = [];
-        for (let i = 0; i < poem.content.length; i += linesPerPage) {
-            pages.push(poem.content.slice(i, i + linesPerPage));
-        }
+        // Определяем цвет камня и номер хода для этого стиха
+        const { stoneClass, moveNumber, isNewStone } = this.getStoneInfo(poem.id);
+        const justPlacedClass = isNewStone ? 'just-placed' : '';
+        
+        // Весь контент в одном прокручиваемом блоке
+        const contentHtml = poem.content.map(line => `<p>${line}</p>`).join('');
         
         article.innerHTML = `
-            <div class="poem" data-poem-id="${poem.id}" data-lang="ru">
+            <div class="poem ${stoneClass} ${justPlacedClass}" data-poem-id="${poem.id}" data-lang="ru" data-move-number="${moveNumber}">
                 <h2 class="poem-title">${poem.title}</h2>
                 <div class="poem-content">
-                    ${pages.map((page, index) => `
-                        <div class="poem-page ${index === 0 ? 'active' : ''}" data-page="${index}">
-                            ${page.map(line => `<p>${line}</p>`).join('')}
-                        </div>
-                    `).join('')}
+                    <div class="poem-text">
+                        ${contentHtml}
+                    </div>
                 </div>
                 <div class="poem-info">
                     <div class="poet-info">
@@ -394,181 +569,23 @@ class PoemRenderer {
                 <div class="poem-tags">
                     ${poem.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                 </div>
-                ${pages.length > 1 ? `
-                    <div class="page-indicators">
-                        ${Array.from({length: pages.length}, (_, i) => `
-                            <div class="page-dot ${i === 0 ? 'active' : ''}" data-page="${i+1}/${pages.length}"></div>
-                        `).join('')}
-                    </div>
-                ` : ''}
+                <div class="scroll-hint">
+                    <span class="scroll-arrow">↓</span>
+                </div>
             </div>
         `;
 
-        const poemElement = article.querySelector('.poem');
-        poemElement.addEventListener('click', () => this.togglePoemLanguage(poem, poemElement));
-
-        // Добавляем обработчики для новой системы навигации
-        if (pages.length > 1) {
-            const pageDots = article.querySelectorAll('.page-dot');
-            let currentPage = 0;
-
-            const updatePage = (page) => {
-                const pages = article.querySelectorAll('.poem-page');
-                
-                // Скрываем все страницы с плавной анимацией
-                pages.forEach(p => {
-                    p.style.display = 'none';
-                    p.classList.remove('active');
-                });
-                
-                // Показываем нужную страницу
-                const nextPageElement = pages[page];
-                nextPageElement.style.display = 'flex';
-                nextPageElement.classList.add('active');
-                
-                // Обновляем индикаторы страниц
-                pageDots.forEach((dot, index) => {
-                    if (index === page) {
-                        dot.classList.add('active');
-                    } else {
-                        dot.classList.remove('active');
-                    }
-                });
-                
-                // Обновляем текущую страницу
-                currentPage = page;
-            };
-
-            // Обработчики для точек навигации
-            pageDots.forEach((dot, index) => {
-                dot.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    updatePage(index);
-                });
-            });
-
-            // Добавляем поддержку клавиатуры
-            const handleKeyPress = (e) => {
-                if (e.key === 'ArrowLeft' && currentPage > 0) {
-                    currentPage--;
-                    updatePage(currentPage);
-                } else if (e.key === 'ArrowRight' && currentPage < pages.length - 1) {
-                    currentPage++;
-                    updatePage(currentPage);
-                }
-            };
-
-            // Добавляем и удаляем обработчик клавиатуры при фокусе
-            poemElement.addEventListener('focus', () => {
-                document.addEventListener('keydown', handleKeyPress);
-            });
-
-            poemElement.addEventListener('blur', () => {
-                document.removeEventListener('keydown', handleKeyPress);
-            });
-
-            // Улучшенная поддержка свайпов для мобильных устройств
-            let touchStartX = 0;
-            let touchEndX = 0;
-            let touchStartY = 0;
-            let touchEndY = 0;
-
-            poemElement.addEventListener('touchstart', (e) => {
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            });
-
-            poemElement.addEventListener('touchend', (e) => {
-                touchEndX = e.changedTouches[0].clientX;
-                touchEndY = e.changedTouches[0].clientY;
-                const diffX = touchStartX - touchEndX;
-                const diffY = touchStartY - touchEndY;
-                
-                // Проверяем, что свайп был преимущественно горизонтальным
-                if (Math.abs(diffX) > Math.abs(diffY) * 2) {
-                    // Определяем направление свайпа (право/лево) с плавной анимацией
-                    if (diffX > 50 && currentPage < pages.length - 1) { // Свайп влево
-                        currentPage++;
-                        updatePage(currentPage);
-                    } else if (diffX < -50 && currentPage > 0) { // Свайп вправо
-                        currentPage--;
-                        updatePage(currentPage);
-                    }
-                }
-            });
+        const poemContent = article.querySelector('.poem-content');
+        const scrollHint = article.querySelector('.scroll-hint');
+        
+        // Скрываем подсказку прокрутки когда пользователь начинает скроллить
+        if (poemContent && scrollHint) {
+            poemContent.addEventListener('scroll', () => {
+                scrollHint.classList.add('hidden');
+            }, { once: true });
         }
 
         return article;
-    }
-
-    togglePoemLanguage(poem, element) {
-        const isRussian = element.getAttribute('data-lang') === 'ru';
-        
-        const newTitle = isRussian ? poem.titleKo : poem.title;
-        const newContent = isRussian ? poem.contentKo : poem.content;
-        
-        // Разбиваем контент на страницы
-        const linesPerPage = 8;
-        const pages = [];
-        for (let i = 0; i < newContent.length; i += linesPerPage) {
-            pages.push(newContent.slice(i, i + linesPerPage));
-        }
-        
-        element.setAttribute('data-lang', isRussian ? 'ko' : 'ru');
-        element.querySelector('.poem-title').textContent = newTitle;
-        
-        const poemContent = element.querySelector('.poem-content');
-        poemContent.innerHTML = pages.map((page, index) => `
-            <div class="poem-page ${index === 0 ? 'active' : ''}" data-page="${index}">
-                ${page.map(line => `<p>${line}</p>`).join('')}
-            </div>
-        `).join('');
-
-        // Обновляем пагинацию
-        if (pages.length > 1) {
-            const paginationControls = element.querySelector('.pagination-controls');
-            if (!paginationControls) {
-                const controls = document.createElement('div');
-                controls.className = 'pagination-controls';
-                controls.innerHTML = `
-                    <button class="pagination-button prev-page">←</button>
-                    <span class="page-info">1 / ${pages.length}</span>
-                    <button class="pagination-button next-page">→</button>
-                `;
-                element.appendChild(controls);
-
-                // Добавляем обработчики для новой пагинации
-                const prevButton = controls.querySelector('.prev-page');
-                const nextButton = controls.querySelector('.next-page');
-                const pageInfo = controls.querySelector('.page-info');
-                let currentPage = 0;
-
-                const updatePage = (page) => {
-                    const pages = element.querySelectorAll('.poem-page');
-                    pages.forEach(p => p.classList.remove('active'));
-                    pages[page].classList.add('active');
-                    pageInfo.textContent = `${page + 1} / ${pages.length}`;
-                    prevButton.disabled = page === 0;
-                    nextButton.disabled = page === pages.length - 1;
-                };
-
-                prevButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (currentPage > 0) {
-                        currentPage--;
-                        updatePage(currentPage);
-                    }
-                });
-
-                nextButton.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (currentPage < pages.length - 1) {
-                        currentPage++;
-                        updatePage(currentPage);
-                    }
-                });
-            }
-        }
     }
 
     renderPoems(append = false) {
@@ -660,24 +677,15 @@ class PoemRenderer {
         return progress;
     }
     setupScrollListeners() {
+        this.headerHidden = false;
+        
+        // Слушаем прокрутку для управления доской Го
         window.addEventListener('scroll', () => {
-            // Определяем, находимся ли мы в заголовке или в разделе стихотворений
-            const headerSection = document.getElementById('header-section');
-            const headerRect = headerSection.getBoundingClientRect();
-            const isAtHeader = headerRect.top <= 0 && headerRect.bottom > 0;
-            
-            // Определяем, находимся ли мы на разделе со стихами
             const poemsSection = document.getElementById('poems-section');
             const poemsSectionRect = poemsSection.getBoundingClientRect();
-            const isAtPoemsSection = poemsSectionRect.top <= window.innerHeight / 2 && poemsSectionRect.bottom >= window.innerHeight / 2;
+            const isAtPoemsSection = poemsSectionRect.top <= window.innerHeight / 2;
             
-            // Если пользователь вернулся к заголовку после чтения стихотворения
-            if (isAtHeader && this.isReadingPoem) {
-                this.isReadingPoem = false;
-                this.showGoBoard();
-            }
-            
-            // Если пользователь начал читать стихотворение
+            // Скрываем доску когда читаем стихи
             if (isAtPoemsSection && !this.isReadingPoem) {
                 this.isReadingPoem = true;
                 this.hideGoBoard();

@@ -82,10 +82,30 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+#header-section.hidden {
+    opacity: 0;
+    transform: translateY(-50px);
+    pointer-events: none;
 }
 
 #poems-section {
     min-height: 100vh;
+    transition: all 0.5s ease;
+}
+
+#poems-section.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
 }
 
 .site-header {
@@ -152,9 +172,366 @@ body {
     margin: auto;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   КАМНИ ГО — Концепт чередования чёрных и белых камней
+   Первый открытый стих = чёрный камень (⚫)
+   Второй открытый стих = белый камень (⚪)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Анимация появления камня — только opacity и scale */
+@keyframes stonePlace {
+    0% {
+        opacity: 0;
+        filter: blur(4px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+@keyframes stonePlaceMobile {
+    0% {
+        opacity: 0;
+        filter: blur(4px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+    }
+}
+
+.poem.stone-black,
+.poem.stone-white {
+    animation: stonePlace 0.5s ease-out forwards;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ЧЁРНЫЙ КАМЕНЬ ⚫ — нечётные ходы (1, 3, 5...)
+   Глубокий чёрный с тонким бликом, как настоящий сланцевый камень
+   ───────────────────────────────────────────────────────────── */
+.poem.stone-black {
+    background: 
+        /* Основной блик — отражение света */
+        radial-gradient(ellipse 40% 30% at 25% 25%, rgba(120, 120, 120, 0.4) 0%, transparent 50%),
+        /* Вторичный блик */
+        radial-gradient(ellipse 20% 15% at 30% 30%, rgba(180, 180, 180, 0.2) 0%, transparent 40%),
+        /* Глубина камня */
+        radial-gradient(ellipse at 50% 50%, #1a1a1a 0%, #0a0a0a 60%, #000 100%);
+    border: 1px solid rgba(60, 60, 60, 0.5);
+    box-shadow: 
+        /* Внутренняя глубина */
+        inset 0 0 40px rgba(0, 0, 0, 0.9),
+        inset 0 -10px 30px rgba(0, 0, 0, 0.5),
+        /* Тень под камнем */
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        0 8px 20px rgba(0, 0, 0, 0.4),
+        /* Мягкое свечение */
+        0 0 30px rgba(0, 0, 0, 0.3);
+    color: #d0d0d0;
+}
+
+/* Номер хода на чёрном камне — в левом верхнем углу */
+.poem.stone-black::before {
+    content: attr(data-move-number);
+    position: absolute;
+    top: 0.5em;
+    left: 0.5em;
+    width: 2em;
+    height: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    font-weight: 400;
+    color: #000;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    text-shadow: none;
+    z-index: 10;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: -0.05em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Маленький индикатор камня — справа внизу */
+.poem.stone-black::after {
+    content: '●';
+    position: absolute;
+    bottom: 0.5em;
+    left: 0.5em;
+    font-size: 1em;
+    color: rgba(255, 255, 255, 0.4);
+    z-index: 10;
+}
+
+.poem.stone-black .poem-title {
+    color: #ffffff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+    mix-blend-mode: normal;
+}
+
+.poem.stone-black .poem-content p {
+    color: #d0d0d0;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.poem.stone-black .poem-info,
+.poem.stone-black .poem-tags {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: rgba(80, 80, 80, 0.3);
+    backdrop-filter: blur(5px);
+}
+
+.poem.stone-black .tag {
+    background: rgba(255, 255, 255, 0.08);
+    color: #b0b0b0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.poem.stone-black .poet-name {
+    color: #c0c0c0;
+}
+
+.poem.stone-black .poem-date {
+    color: #808080;
+}
+
+/* Индикаторы страниц для чёрного камня */
+.poem.stone-black .page-dot {
+    background: rgba(255, 255, 255, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.poem.stone-black .page-dot.active {
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   БЕЛЫЙ КАМЕНЬ ⚪ — чётные ходы (2, 4, 6...)
+   Молочно-белый с перламутровым отливом, как раковина хамагури
+   ───────────────────────────────────────────────────────────── */
+.poem.stone-white {
+    background: 
+        /* Основной блик — яркое отражение */
+        radial-gradient(ellipse 35% 25% at 28% 28%, rgba(255, 255, 255, 0.95) 0%, transparent 50%),
+        /* Перламутровый отлив */
+        radial-gradient(ellipse 60% 40% at 40% 35%, rgba(255, 255, 255, 0.6) 0%, transparent 60%),
+        /* Тёплый оттенок раковины */
+        radial-gradient(ellipse at 50% 50%, #fafafa 0%, #f0f0f0 30%, #e0e0e0 70%, #d0d0d0 100%);
+    border: 1px solid rgba(180, 180, 180, 0.5);
+    box-shadow: 
+        /* Внутренний объём */
+        inset 0 0 30px rgba(255, 255, 255, 0.8),
+        inset 0 -5px 20px rgba(200, 200, 200, 0.3),
+        /* Тень под камнем */
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 8px 20px rgba(0, 0, 0, 0.1),
+        /* Мягкое свечение */
+        0 0 40px rgba(255, 255, 255, 0.15);
+    color: #1a1a1a;
+}
+
+/* Номер хода на белом камне — в левом верхнем углу */
+.poem.stone-white::before {
+    content: attr(data-move-number);
+    position: absolute;
+    top: 0.5em;
+    left: 0.5em;
+    width: 2em;
+    height: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    font-weight: 400;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 50%;
+    text-shadow: none;
+    z-index: 10;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: -0.05em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Маленький индикатор камня — справа внизу */
+.poem.stone-white::after {
+    content: '○';
+    position: absolute;
+    bottom: 0.5em;
+    left: 0.5em;
+    font-size: 1em;
+    color: rgba(0, 0, 0, 0.3);
+    z-index: 10;
+}
+
+.poem.stone-white .poem-title {
+    color: #0a0a0a;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+    mix-blend-mode: normal;
+}
+
+.poem.stone-white .poem-content p {
+    color: #1a1a1a;
+    text-shadow: none;
+}
+
+.poem.stone-white .poem-info,
+.poem.stone-white .poem-tags {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(5px);
+    color: #1a1a1a;
+}
+
+.poem.stone-white .tag {
+    background: rgba(0, 0, 0, 0.06);
+    color: #333;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.poem.stone-white .poet-name {
+    color: #1a1a1a;
+}
+
+.poem.stone-white .poem-date {
+    color: #555;
+}
+
+/* Индикаторы страниц для белого камня */
+.poem.stone-white .page-dot {
+    background: rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.poem.stone-white .page-dot.active {
+    background: rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+}
+
+.poem.stone-white .page-dot::after {
+    background: rgba(255, 255, 255, 0.9);
+    color: #1a1a1a;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   HOVER ЭФФЕКТЫ — только изменение тени, без смещения
+   ───────────────────────────────────────────────────────────── */
 .poem:hover {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.3);
+}
+
+.poem.stone-black:hover {
+    box-shadow: 
+        inset 0 0 40px rgba(0, 0, 0, 0.9),
+        inset 0 -10px 30px rgba(0, 0, 0, 0.5),
+        0 6px 12px rgba(0, 0, 0, 0.5),
+        0 12px 30px rgba(0, 0, 0, 0.35),
+        0 0 50px rgba(60, 60, 60, 0.25);
+    border-color: rgba(100, 100, 100, 0.6);
+}
+
+.poem.stone-white:hover {
+    box-shadow: 
+        inset 0 0 30px rgba(255, 255, 255, 0.9),
+        inset 0 -5px 20px rgba(200, 200, 200, 0.4),
+        0 6px 12px rgba(0, 0, 0, 0.15),
+        0 12px 30px rgba(0, 0, 0, 0.1),
+        0 0 50px rgba(255, 255, 255, 0.15);
+    border-color: rgba(220, 220, 220, 0.8);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ЭФФЕКТ ПУЛЬСАЦИИ — когда камень только что положен
+   ───────────────────────────────────────────────────────────── */
+@keyframes stonePulse {
+    0%, 100% {
+        box-shadow: 
+            inset 0 0 40px rgba(0, 0, 0, 0.9),
+            0 4px 8px rgba(0, 0, 0, 0.5),
+            0 0 30px rgba(0, 0, 0, 0.3);
+    }
+    50% {
+        box-shadow: 
+            inset 0 0 40px rgba(0, 0, 0, 0.9),
+            0 4px 8px rgba(0, 0, 0, 0.5),
+            0 0 50px rgba(100, 100, 100, 0.4);
+    }
+}
+
+@keyframes stonePulseWhite {
+    0%, 100% {
+        box-shadow: 
+            inset 0 0 30px rgba(255, 255, 255, 0.8),
+            0 4px 8px rgba(0, 0, 0, 0.15),
+            0 0 40px rgba(255, 255, 255, 0.15);
+    }
+    50% {
+        box-shadow: 
+            inset 0 0 30px rgba(255, 255, 255, 0.8),
+            0 4px 8px rgba(0, 0, 0, 0.15),
+            0 0 60px rgba(255, 255, 255, 0.3);
+    }
+}
+
+.poem.stone-black.just-placed {
+    animation: stonePlace 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               stonePulse 2s ease-in-out 0.6s 2;
+}
+
+.poem.stone-white.just-placed {
+    animation: stonePlace 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               stonePulseWhite 2s ease-in-out 0.6s 2;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   СЧЁТЧИК ХОДОВ — отображение прогресса партии
+   ───────────────────────────────────────────────────────────── */
+.move-counter {
+    position: fixed;
+    top: 2em;
+    right: 2em;
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    padding: 0.8em 1.2em;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 2em;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.9em;
+    color: #fff;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.move-counter.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.move-counter .stone-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.move-counter .black-count::before {
+    content: '●';
+    margin-right: 0.3em;
+}
+
+.move-counter .white-count::before {
+    content: '○';
+    margin-right: 0.3em;
 }
 
 .poem[data-lang="ko"] {
@@ -173,42 +550,73 @@ body {
     z-index: 1;
 }
 
+/* Отступ заголовка для камней — чтобы номер хода не перекрывал */
+.poem.stone-black .poem-title,
+.poem.stone-white .poem-title {
+    margin-left: 3em;
+    mix-blend-mode: normal;
+}
+
 .poem-content {
     flex: 1;
     position: relative;
-    height: 100%;
+    overflow: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding: 1em;
+}
+
+.poem-text {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    overflow: hidden;
+    gap: 0.8em;
+    min-height: 100%;
 }
 
-.poem-page {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2em;
-}
-
-.poem-page.active {
-    display: flex;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.poem-page p {
-    margin: 0.5em 0;
+.poem-text p {
+    margin: 0;
     white-space: pre-wrap;
     word-break: keep-all;
+    font-size: 1.1em;
+    line-height: 1.6;
+}
+
+/* Подсказка прокрутки */
+.scroll-hint {
+    position: absolute;
+    bottom: 0.5em;
+    right: 0.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.scroll-hint.hidden {
+    opacity: 0;
+}
+
+.scroll-hint .scroll-arrow {
     font-size: 1.2em;
-    line-height: 2;
-    text-align: center;
+    animation: scrollBounce 1.5s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(3px); }
+}
+
+/* Стили для чёрного камня */
+.poem.stone-black .scroll-hint {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Стили для белого камня */
+.poem.stone-white .scroll-hint {
+    color: rgba(0, 0, 0, 0.4);
 }
 
 .poem-info {
@@ -369,18 +777,60 @@ body {
     box-sizing: border-box; 
 }
 
+/* Камни на миникарте — чередование чёрных и белых */
 .minimap-cell:not(.empty)::before {
-    content: "•";
+    content: "●";
     display: block;
-    font-size: 0.8em;
-    opacity: 0.7;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    font-size: 0.6em;
+    opacity: 0.8;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
     line-height: 1;
     text-align: center;
 }
+
+/* Чёрный камень на миникарте */
+.minimap-cell.stone-black:not(.empty)::before {
+    content: "●";
+    color: #1a1a1a;
+    text-shadow: 
+        0 0 2px rgba(255, 255, 255, 0.3),
+        0 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+/* Белый камень на миникарте */
+.minimap-cell.stone-white:not(.empty)::before {
+    content: "○";
+    color: #f0f0f0;
+    text-shadow: 
+        0 0 3px rgba(255, 255, 255, 0.5),
+        0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Прочитанный стих — погасший камень */
+.minimap-cell.read {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.minimap-cell.read::before {
+    opacity: 0.4 !important;
+    filter: grayscale(100%);
+}
+
+.minimap-cell.read.stone-black::before,
+.minimap-cell.read.stone-white::before {
+    color: #555 !important;
+    text-shadow: none !important;
+}
+
 .minimap-cell:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: scale(1.1);
+}
+
+.minimap-cell.read:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .minimap-cell.empty {
@@ -535,7 +985,7 @@ body {
 @media (max-width: 768px) {
 
     .custom-cursor {
-        display: none; !important;
+        display: none !important;
     }
 
     .subtitle, .korean-text {
@@ -544,24 +994,7 @@ body {
         max-width: 80%;
     }
 
-    .minimap {
-        position: fixed;
-        bottom: 5em !important;
-        left: 5em !important;
-        width: 30em !important;
-        height: 30em !important;
-        background: rgba(0, 0, 0, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(5px);
-        display: grid;
-        gap: 1px;
-        mix-blend-mode: difference;
-        z-index: 1000;
-        border-radius: 4px;
-        padding: 2px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
+
 
     .glitch-text {
         font-size: 7em;
@@ -579,22 +1012,63 @@ body {
         padding: 1em;
     }
 
+    .poem.stone-black,
+    .poem.stone-white {
+        animation: stonePlaceMobile 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Номер хода на мобильных — компактнее */
+    .poem.stone-black::before,
+    .poem.stone-white::before {
+        top: 0.3em;
+        left: 0.3em;
+        width: 1.6em;
+        height: 1.6em;
+        font-size: 1em;
+    }
+
+    .poem.stone-black::after,
+    .poem.stone-white::after {
+        bottom: 0.3em;
+        left: 0.3em;
+        font-size: 0.8em;
+    }
+
+    /* Hover на мобильных — только тень, без смещения */
+    .poem.stone-black:hover,
+    .poem.stone-white:hover {
+        transform: none !important;
+    }
+
     .poem-title {
         position: sticky;
         top: 0;
         backdrop-filter: blur(10px);
         z-index: 1;
         margin: 0;
-        padding: 1em;
-        font-size: 1.5em;
+        padding: 0.8em 1em;
+        padding-left: 2.5em; /* Отступ для номера хода */
+        font-size: 1.3em;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .poem-page {
-        position: relative;
-        height: auto;
-        min-height: 60vh;
-        padding: 1em;
+    /* Контент стиха на мобильных */
+    .poem-content {
+        padding: 0.5em;
+    }
+    
+    .poem-text {
+        gap: 0.5em;
+    }
+    
+    .poem-text p {
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+    
+    .scroll-hint {
+        bottom: 0.3em;
+        right: 0.3em;
     }
     
     .movement-hint {
@@ -633,28 +1107,35 @@ body {
         font-size: 0.9em;
     }
 
-    .poem-page p {
+    .poem-text p {
         font-size: 1em;
         line-height: 1.6;
     }
 
-    .page-indicators {
-        bottom: 0.5em;
-        padding: 0.3em;
-    }
-    
-    .page-dot {
-        width: 0.7em;
-        height: 0.7em;
-    }
-    
-    .page-dot.active {
-        width: 1em;
-        height: 1em;
+    /* Счётчик ходов на мобильных */
+    .move-counter {
+        top: 1em;
+        right: 1em;
+        padding: 0.5em 0.8em;
+        font-size: 2.5em;
+        border-radius: 1.5em;
     }
 
-    .poem-page {
-        padding-bottom: 3em;
+    /* Миникарта на мобильных — меньше и в углу */
+    .minimap {
+        bottom: 2em !important;
+        left: 2em !important;
+        right: auto !important;
+        width: 15em !important;
+        height: 15em !important;
+    }
+
+    /* Кнопка наверх на мобильных */
+    .scroll-to-top {
+        bottom: 2em;
+        right: 2em;
+        width: 4em;
+        height: 4em;
     }
 }
 
@@ -664,66 +1145,7 @@ body {
     line-height: 1.7;
 }
 
-.page-indicators {
-    position: absolute;
-    bottom: 0.8em;
-    right: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 0.5em;
-    padding: 0.5em;
-    z-index: 10;
-    mix-blend-mode: difference;
-}
-
-.page-dot {
-    width: 0.5em;
-    height: 0.5em;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-    position: relative;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    opacity: 0.7;
-}
-
-.page-dot:hover {
-    transform: scale(1.2);
-    background: rgba(255, 255, 255, 0.5);
-}
-
-.page-dot.active {
-    width: 0.8em;
-    height: 0.8em;
-    background: rgba(255, 255, 255, 0.9);
-    opacity: 1;
-    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
-}
-
-.page-dot::after {
-    content: attr(data-page);
-    position: absolute;
-    top: -1.5em;
-    left: 50%;
-    transform: translateX(-50%) scale(0);
-    color: white;
-    font-size: 0.7em;
-    opacity: 0;
-    transition: all 0.2s ease;
-    pointer-events: none;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 0.2em 0.4em;
-    border-radius: 0.3em;
-    white-space: nowrap;
-}
-
-.page-dot:hover::after {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-}
+/* Старая пагинация удалена — теперь используется прокрутка */
 
 
 .custom-cursor {
@@ -847,4 +1269,121 @@ button:hover ~ .custom-cursor,
     width: 20px;
     height: 20px;
     background: rgba(255, 255, 255, 0.2);
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+   ФИНАЛЬНОЕ СООБЩЕНИЕ — когда все стихи прочитаны
+   ───────────────────────────────────────────────────────────── */
+.final-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4em;
+    background: radial-gradient(ellipse at center, rgba(40, 40, 40, 0.9) 0%, rgba(20, 20, 20, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    border-radius: 1.5em;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    max-width: 500px;
+    margin: auto;
+    animation: finalFadeIn 1.5s ease-out;
+    box-shadow: 
+        0 0 60px rgba(0, 0, 0, 0.5),
+        inset 0 0 40px rgba(255, 255, 255, 0.03);
+}
+
+@keyframes finalFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.final-message .final-icon {
+    font-size: 4em;
+    margin-bottom: 0.5em;
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+    font-family: serif;
+}
+
+.final-message h2 {
+    font-size: 1.8em;
+    margin: 0 0 0.8em 0;
+    color: #fff;
+    font-weight: 300;
+    letter-spacing: 0.1em;
+}
+
+.final-message .final-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 1.5em;
+    margin: 0.5em 0 1.5em 0;
+    font-family: 'Space Mono', monospace;
+}
+
+.final-message .black-stat {
+    color: #fff;
+}
+
+.final-message .white-stat {
+    color: #ccc;
+}
+
+.final-message .separator {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.final-message .final-text {
+    font-size: 1.1em;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0.5em 0;
+    line-height: 1.6;
+}
+
+.final-message .final-author {
+    font-size: 1em;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 1em 0 0.5em 0;
+    font-style: italic;
+}
+
+.final-message .final-hint {
+    font-size: 0.85em;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 1.5em;
+    font-style: italic;
+    letter-spacing: 0.05em;
+}
+
+/* Мобильная адаптация финального сообщения */
+@media (max-width: 768px) {
+    .final-message {
+        padding: 3em 2em;
+        max-width: 90%;
+        font-size: 2em;
+    }
+    
+    .final-message .final-icon {
+        font-size: 3em;
+    }
+    
+    .final-message h2 {
+        font-size: 1.4em;
+    }
+    
+    .final-message .final-stats {
+        font-size: 1.2em;
+    }
 }
